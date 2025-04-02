@@ -2,13 +2,14 @@ const express = require("express");
 const { resolve } = require("path");
 require("dotenv").config();
 const app = express();
+
 const port = 3010;
 const bcrypt = require("bcrypt");
 app.use(express.json());
 
 const UserModel = require("./schema");
-
 const connection = require("./connection");
+const userModel = require("./schema");
 app.use(express.static("static"));
 
 app.get("/", (req, res) => {
@@ -39,6 +40,33 @@ app.post("/signup", async (req, res) => {
     res.status(500).json("serverErrror");
   }
 });
+
+
+app.post("/login", async (req, res) => {
+  try {
+    const {  email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+    const user = await userModel.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    res.status(200).json({ message: "Login successful"});
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+  });
 
 app.listen(port, async () => {
   try {
